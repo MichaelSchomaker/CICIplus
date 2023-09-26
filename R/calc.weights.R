@@ -12,6 +12,10 @@ calc.weights <- function(X,Anodes=NULL,Ynodes=NULL,Lnodes=NULL,Cnodes=NULL,
 d.method <- match.arg(d.method)
 z.method <- match.arg(z.method)
 if(is.null(abar)){stop("please provide values for abar")}
+if(min(which(colnames(X)%in%Ynodes))<min(which(colnames(X)%in%Anodes))){stop("Ynodes can not occur before Anodes.\n Likely you specified pre-intervention variables as Ynode?")}
+if(any(c(Ynodes,Lnodes,Anodes,Cnodes)%in%colnames(X)==FALSE)){stop(paste("You have specified the following variable name(s) which are not part of the data:",
+                                                                         paste(c(Ynodes,Lnodes,Anodes,Cnodes)[c(Ynodes,Lnodes,Anodes,Cnodes)%in%colnames(X)==FALSE],collapse=" ") ,"\n"))}
+if(max(which(colnames(X)%in%Anodes))==ncol(X)){stop("Anodes/Cnodes should not be in last column")}
 
 # construct model formulas
 Aform.n <-  CICI::make.model.formulas(X=X, Anodes=Anodes, Cnodes=Cnodes, Ynodes= Ynodes, survival=survival) 
@@ -29,7 +33,9 @@ Aform.d2 <- rep(NULL,length(Aform.d))
     if(length(rem)>0){nf <- gsub(" ", "",Aform.d[j]); nf <- gsub("~","~1+",nf)
       for(k in 1:length(rem)){
         nf <- gsub(paste0("+",rem[k]),"",nf,fixed=T) 
-      }}else{nf<-gsub(" ", "",Aform.d[j]); nf <- gsub("~","~1+",nf)}
+      }}else{if(j==1){nf<-gsub(" ", "",Aform.d[j]); nf <- gsub("~","~1+",nf)}else{
+                      nf<-paste0(unlist(strsplit(Aform.d[j],"~"))[1],"~",unlist(strsplit(Aform.d2[j-1],"~"))[2])}
+             }
     Aform.d2[j] <- nf
     }
 
@@ -78,6 +84,25 @@ w.list <- rep(list(NA),length(c)); names(w.list)<-paste(c)
     }
   w.list[[k]] <- mget(paste0("w",0:(times-1)))
   }
+
+if(for.sgf==TRUE){
+  loop.Q    <- find.Qs(dat=X, L=Lnodes, Y=Ynodes, A=Anodes, C=Cnodes) 
+  max.Qs    <- max(unlist(lapply(loop.Q[[1]],length)))
+  if(length(w.list[[1]])!=max.Qs){
+    if(verbose==TRUE){message(paste0("Weights within blocks of A/C nodes are multiplied, where necessary.\n"))}
+    if(length(loop.Q$AC.block.names)!=max.Qs){stop("Contact maintainer; something does not make sense.")}
+    if(length(unlist(loop.Q$AC.block.names))!=length(w.list[[1]])){stop("Contact maintainer; something does not make sense.")}
+    w.binding <- rep(NA,length(w.list[[1]]))
+    ll <- lapply(loop.Q$AC.block.names, length)
+    k <- length(w.binding); block <- 1; group<- length(loop.Q$AC.block.names)
+    while(k>=1){
+      w.binding[k:(k+1-ll[[block]])]<-group
+      k<-k-ll[[block]] ; block <- block+1; group<-group-1
+    }
+    for(m in 1:length(w.list)){w.list[[m]] <- lapply(split(w.list[[m]],w.binding),Multiply) }
+  }
+}
+
 weight<-w.list
 
 

@@ -9,5 +9,4 @@ Description: Estimation of counterfactual outcomes for multiple values of contin
 Depends: R (>= 4.0), CICI 
 Imports: SuperLearner, mgcv, parallel, doParallel, foreach, doRNG, rngtools
 Suggests: haldensify, hal9001
-Remotes: nhejazi/haldensify
 License: GPL-2

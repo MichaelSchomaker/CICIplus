@@ -1,6 +1,7 @@
 # Task: simulation 13 for survival with weights
 # pass on options for calc.weights: i.e. parallelize for hal_density and screening options for model.formulas.update
 # calc.support for custom interventions: does not make sense. Not allow or warning or improve?
+
 sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
                 abar =  NULL, survivalY = FALSE,
                 SL.library = "SL.glm", SL.export = NULL,
@@ -24,6 +25,7 @@ sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
   if(any(substr(colnames(X),1,4)=="list")){stop("Variable names that start with 'list' are not allowed. Please rename.")}
   if(any(c(Ynodes,Lnodes,Anodes,Cnodes)%in%colnames(X)==FALSE)){stop(paste("You have specified the following variable name(s) which are not part of the data:",
                                                                            paste(c(Ynodes,Lnodes,Anodes,Cnodes)[c(Ynodes,Lnodes,Anodes,Cnodes)%in%colnames(X)==FALSE],collapse=" ") ,"\n"))}
+  if(max(which(colnames(X)%in%Anodes))==ncol(X)){stop("Anodes/Cnodes should not be in last column")}
   if(any(sapply(X,is.ordered))){stop("Ordered variables are not allowed")}
   if(is.logical(survivalY)==FALSE){stop("survivalY needs to be TRUE or FALSE")}
   if(survivalY==TRUE){if(verbose==TRUE){if(is.null(Cnodes)){cat("Warning: you indicate that you have survival data (survivalY=T), but you have no Cnodes specified. \n")}}}
@@ -46,7 +48,7 @@ sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
   if(verbose==TRUE){cat("Note: your outcome (or Lnode that acts as outcome in Q-regression) is treated as continuous/gaussian in the Super Learner.\n")}}
   if(is.null(Yweights)==FALSE & any(model.Q.families=="binomial")){alert<-TRUE}else{alert<-FALSE} 
   if(is.null(Yweights)==TRUE  & any(model.Q.families=="binomial") & verbose==TRUE){cat("Note: with binomial outcomes (and >2 time points), the conditional outcome models need to model proportional data. \n Make sure your learners can deal with this.\n")}
-  if(is.null(Yweights)==FALSE){if(is.list(Yweights)==FALSE | length(Yweights)!=max(unlist(lapply(loop.Q$Qs.for.each.Y,length))) | any(dim(Yweights[[1]])!=c(nrow(X),length(abar))) ){stop("Yweights do not have right format. Type ?sgf and read the details section.")}}
+  if(is.null(Yweights)==FALSE){if(is.list(Yweights)==FALSE | length(Yweights[[1]])!=max(unlist(lapply(loop.Q$Qs.for.each.Y,length))) | any(dim(Yweights[[1]])!=c(nrow(X),length(abar))) ){stop("Yweights do not have right format. Type ?sgf and read the details section.")}}
   
   ### matrices to store results ###
   n.a <- length(Anodes); n.t <- length(Ynodes); n.l <-length(Lnodes); time.points <- 1:n.t
@@ -113,7 +115,7 @@ sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
                         
                         # Step 2: sequential g-formula
                         for(t in length(Q.info):1)try({
-                          if(is.null(Yweights)==FALSE){w.t<-Yweights[[t]][,ind]}else{w.t<-rep(1,nrow(X))} 
+                          if(is.null(Yweights)==FALSE){w.t<-Yweights[[1]][[t]][,ind]}else{w.t<-rep(1,nrow(X))} 
                           if(t==length(Q.info)){Y.t<-mydat[,which(colnames(mydat)==Q.info[length(Q.info)])]}else{Y.t <- Q.t}
                           if(t>1){Y.w <- Y.t*w.t}else{Y.w<-Y.t}
                           fdata <- cbind(mydat[,1:((which(colnames(mydat)==loop.Q[[2]][[current.t]][t])))],Y.w)
@@ -169,7 +171,7 @@ sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
                 gdata[,all.rel.Anodes] <-   (store.results[i,2:(n.a+1)])[is.na(store.results[i,2:(n.a+1)])==F]
                 # Step 2: sequential g-formula
                 for(t in length(Q.info):1)try({
-                  if(is.null(Yweights)==FALSE){w.t<-Yweights[[t]][,ind]}else{w.t<-rep(1,nrow(X))} 
+                  if(is.null(Yweights)==FALSE){w.t<-Yweights[[1]][[t]][,ind]}else{w.t<-rep(1,nrow(X))} 
                   if(t==length(Q.info)){Y.t<-mydat[,which(colnames(mydat)==Q.info[length(Q.info)])]}else{Y.t <- Q.t}
                   if(t>1){Y.w <- Y.t*w.t}else{Y.w<-Y.t}
                   fdata <- cbind(mydat[,1:((which(colnames(mydat)==loop.Q[[2]][[current.t]][t])))],Y.w)

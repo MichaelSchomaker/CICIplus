@@ -22,7 +22,8 @@ binning <- function(form.n,form.d,X,Anodes,abar){
                     length(form.n))
   cuts <- rep(NA,length(abar)-1)
   for(i in 1:(length(cuts))){cuts[i] <- (abar[i] + abar[i+1])/2}  
-  cuts <- c(-Inf,cuts,Inf)
+  #cuts <- c(-Inf,cuts,Inf)
+  cuts <- c(cuts[min(order(cuts))]-mean(diff(abar)),cuts,cuts[max(order(cuts))]+mean(diff(abar)))
   #
   for(i in 1:length(form.n)){
     for(j in 1:length(abar)){
@@ -161,5 +162,19 @@ find.Qs <- function(dat, Y, A, L, C){
     for(k in 1:length(maxA.list[[i]])){
         maxA.list[[i]][k] <- colnames(dat)[max(position.AC[which(position.AC<which(colnames(dat2)%in%Q.list[[i]][k]))])]}
   }
-  return(list(Qs.for.each.Y=Q.list, maxAC.for.each.Q=maxA.list))
+  #
+  AC.block <- AC.block.names <-  split(position.AC,block.index.AC)
+  for(i in 1:length(AC.block.names)){AC.block.names[[i]] <- colnames(dat)[AC.block[[i]]] }
+  #
+  return(list(Qs.for.each.Y=Q.list, maxAC.for.each.Q=maxA.list, AC.block.names=AC.block.names))
 } 
+
+Multiply <- function(lists){
+  if(length(lists)==1){output<-lists}
+  if(length(lists)>=1){
+    output <- Reduce("*",lists)
+  }
+  return(output)
+}
+
+
