@@ -22,8 +22,7 @@ Date: \tab 2023-08-05\cr
 License: \tab GPL-2\cr
 Depends: \tab R (>= 4.0), CICI\cr
 Imports: \tab mgcv, SuperLearner, ggplot2, parallel, doParallel, foreach, doRNG, rngtools\cr
-Suggests: \tab haldensify \cr
-Remotes: \tab nhejazi/haldensify \cr
+Suggests: \tab haldensify, hal9001 \cr
 }
 
 }
