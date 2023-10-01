@@ -115,7 +115,7 @@ sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
                         
                         # Step 2: sequential g-formula
                         for(t in length(Q.info):1)try({
-                          if(is.null(Yweights)==FALSE){w.t<-Yweights[[1]][[t]][,ind]}else{w.t<-rep(1,nrow(X))} 
+                          if(is.null(Yweights)==FALSE){w.t<-Yweights[[t]][,ind]}else{w.t<-rep(1,nrow(X))} 
                           if(t==length(Q.info)){Y.t<-mydat[,which(colnames(mydat)==Q.info[length(Q.info)])]}else{Y.t <- Q.t}
                           if(t>1){Y.w <- Y.t*w.t}else{Y.w<-Y.t}
                           fdata <- cbind(mydat[,1:((which(colnames(mydat)==loop.Q[[2]][[current.t]][t])))],Y.w)
@@ -171,7 +171,7 @@ sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
                 gdata[,all.rel.Anodes] <-   (store.results[i,2:(n.a+1)])[is.na(store.results[i,2:(n.a+1)])==F]
                 # Step 2: sequential g-formula
                 for(t in length(Q.info):1)try({
-                  if(is.null(Yweights)==FALSE){w.t<-Yweights[[1]][[t]][,ind]}else{w.t<-rep(1,nrow(X))} 
+                  if(is.null(Yweights)==FALSE){w.t<-Yweights[[t]][,ind]}else{w.t<-rep(1,nrow(X))} 
                   if(t==length(Q.info)){Y.t<-mydat[,which(colnames(mydat)==Q.info[length(Q.info)])]}else{Y.t <- Q.t}
                   if(t>1){Y.w <- Y.t*w.t}else{Y.w<-Y.t}
                   fdata <- cbind(mydat[,1:((which(colnames(mydat)==loop.Q[[2]][[current.t]][t])))],Y.w)
