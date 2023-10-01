@@ -48,7 +48,7 @@ sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
   if(verbose==TRUE){cat("Note: your outcome (or Lnode that acts as outcome in Q-regression) is treated as continuous/gaussian in the Super Learner.\n")}}
   if(is.null(Yweights)==FALSE & any(model.Q.families=="binomial")){alert<-TRUE}else{alert<-FALSE} 
   if(is.null(Yweights)==TRUE  & any(model.Q.families=="binomial") & verbose==TRUE){cat("Note: with binomial outcomes (and >2 time points), the conditional outcome models need to model proportional data. \n Make sure your learners can deal with this.\n")}
-  if(is.null(Yweights)==FALSE){if(is.list(Yweights)==FALSE | length(Yweights[[1]])!=max(unlist(lapply(loop.Q$Qs.for.each.Y,length))) | any(dim(Yweights[[1]])!=c(nrow(X),length(abar))) ){stop("Yweights do not have right format. Type ?sgf and read the details section.")}}
+  if(is.null(Yweights)==FALSE){if(is.list(Yweights)==FALSE | length(Yweights)!=max(unlist(lapply(loop.Q$Qs.for.each.Y,length))) | any(dim(Yweights[[1]])!=c(nrow(X),length(abar))) ){stop("Yweights do not have right format. Type ?sgf and read the details section.")}}
   
   ### matrices to store results ###
   n.a <- length(Anodes); n.t <- length(Ynodes); n.l <-length(Lnodes); time.points <- 1:n.t
