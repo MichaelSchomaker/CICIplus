@@ -70,60 +70,76 @@ parametric <- function(form.n,form.d,X,Anodes,abar){
 
 # 3) haldensify
 
-hal_density <- function(form.n,form.d,X,Anodes,abar,...){
+hal_density <- function(form.n,form.d,X,Anodes,abar,
+                        n_bins=max(10, sqrt(nrow(X))),
+                        lambda_seq = exp(seq(-0.1, -10, length = 100)),
+                        grid_type=c("equal_range","equal_mass"),
+                        max_degree = ifelse(ncol(X)>=20,2,3),
+                        smoothness_orders = 1,
+                        hal.verbose=FALSE,
+                        runtime=c("fast","very_fast","fairly_fast","somewhat_fast","regular","not_specified"),
+                        ...){
   #
   if(length(abar)<2){stop("abar needs to have >= 2 values to apply haldensify")}
   contin_var <- apply(subset(X, select=Anodes), 2, function(var) length(unique(var)))
   if(any(contin_var<10)){warning("Some of your intervention variables have less than 10 unique values. Are you sure A is continuous?")}
+  runtime <- match.arg(runtime)
+  very_fast        <- list(c(50,25),c(50,25,10),c(25,10),c(25, 10, 5))
+  fast             <- list(c(100,50),c(100,50,25),c(40,15),c(40, 15, 10))
+  fairly_fast      <- list(c(200,100),c(200,100,50),c(50,25),c(50, 25, 15)) 
+  somewhat_fast    <- list(c(400,200),c(400,200,100),c(100,75),c(100, 75, 50))
+  regular          <- list(c(500,200),c(500,200,50),c(200,100),c(200, 100, 50))
+  sel_rt <- get(runtime)
   #
   fitted.n <- fitted.d <- rep(list(NULL),length(form.n))
   g.d <- g.n <- rep(list(matrix(NA,nrow=nrow(X),ncol=length(abar),dimnames=list(NULL,paste(abar)))),
                     length(form.n))
   #
-  decide_knots_1 = ifelse(ncol(X)>=20,c(25, 10),c(25, 10, 5))
-  decide_knots_0 = ifelse(ncol(X)>=20,c(50, 25),c(50, 25, 10))
   for(i in 1:length(form.n)){
-        #
+        # numerator
+        W.n <- subset(X,select=gsub(" ", "",strsplit(strsplit(form.n[i],"~")[[1]][2],"[+]")[[1]]))
+        nknots <- num_knots_generator(
+          max_degree = max_degree,
+          smoothness_orders  = smoothness_orders,
+          base_num_knots_0 = ifelse(ncol(W.n)>=20,sel_rt[[1]],sel_rt[[2]]),
+          base_num_knots_1 = ifelse(ncol(W.n)>=20,sel_rt[[3]],sel_rt[[4]])
+        )
         fitted.n[[i]] <- haldensify::haldensify(
           A = as.numeric(unlist(c(subset(X,select=gsub(" ", "",strsplit(form.n[i],"~")[[1]][1]))))),
-          W = subset(X,select=gsub(" ", "",strsplit(strsplit(form.n[i],"~")[[1]][2],"[+]")[[1]])),
-          n_bins = 100,
-          grid_type = c("equal_range","equal_mass"),
-          lambda_seq = exp(seq(-0.1, -10, length = 100)),
-          # 
-          num_knots = hal9001:::num_knots_generator(
-            max_degree = ifelse(ncol(X)>=20,2,3),
-            smoothness_order = 1,
-            base_num_knots_0 = decide_knots_0,
-            base_num_knots_1 = decide_knots_1
-          )
+          W = W.n,
+          n_bins = n_bins,
+          grid_type = grid_type,
+          lambda_seq = lambda_seq,
+          num_knots = nknots, ...
         )
-        #
+        if(hal.verbose==TRUE){message(paste("Number of knots for numerator density:", paste(nknots, collapse=","), "(", form.n[i],")"))}
+        #  
+        # denominator
         tc <- gsub(" ", "",strsplit(strsplit(form.d[i],"~")[[1]][2],"[+]")[[1]])
-        if(tc[1]=="1" & length(tc)==1){W.d<-rep(1,nrow(X))}else{
-          W.d<- subset(X,select=gsub(" ", "",strsplit(strsplit(form.d[i],"~")[[1]][2],"[+]")[[1]])[-1])}
-        
+        if(tc[1]=="1" & length(tc)==1){W.d<-matrix(1,nrow(X),ncol=1)}else{
+        W.d<- subset(X,select=gsub(" ", "",strsplit(strsplit(form.d[i],"~")[[1]][2],"[+]")[[1]])[-1])}
+        nknots2 <- num_knots_generator(
+          max_degree = max_degree,
+          smoothness_orders  = smoothness_orders,
+          base_num_knots_0 = ifelse(ncol(W.d)>=20,sel_rt[[1]],sel_rt[[2]]),
+          base_num_knots_1 = ifelse(ncol(W.d)>=20,sel_rt[[3]],sel_rt[[4]])
+        )
         fitted.d[[i]] <-haldensify::haldensify(
           A = as.numeric(unlist(c(subset(X,select=gsub(" ", "",strsplit(form.d[i],"~")[[1]][1]))))),
           W = W.d,
-          n_bins = 100,
-          grid_type = c("equal_range","equal_mass"),
-          lambda_seq = exp(seq(-0.1, -10, length = 100)),
-          # 
-          num_knots = hal9001:::num_knots_generator(
-            max_degree = ifelse(ncol(X)>=20,2,3),
-            smoothness_order = 1,
-            base_num_knots_0 = decide_knots_0,
-            base_num_knots_1 = decide_knots_1
-          )
+          n_bins = n_bins,
+          grid_type = grid_type,
+          lambda_seq = lambda_seq,
+          num_knots = nknots2,...
         )
+        if(hal.verbose==TRUE){message(paste("Number of knots for denominator density:", paste(nknots2, collapse=","), "(", form.d[i],")"))}
         #
   for(j in 1:length(abar)){
       g.n[[i]][,j] <- haldensify:::predict.haldensify(fitted.n[[i]], new_A = rep(abar[j],nrow(X)),
                                              new_W = subset(X,select=gsub(" ", "",strsplit(strsplit(form.n[i],"~")[[1]][2],"[+]")[[1]])), trim=FALSE, ...)
       g.d[[i]][,j] <- haldensify:::predict.haldensify(fitted.d[[i]], new_A = rep(abar[j],nrow(X)),
                               new_W = subset(X,select=gsub(" ", "",strsplit(strsplit(form.n[i],"~")[[1]][2],"[+]")[[1]])), trim=FALSE, ...)
-    }
+  }
   }
   #
   return(list(g.n,g.d))
@@ -177,4 +193,18 @@ Multiply <- function(lists){
   return(output)
 }
 
+num_knots_generator <- function(max_degree, smoothness_orders, base_num_knots_0 = 500, 
+          base_num_knots_1 = 200) 
+{
+  if (all(smoothness_orders > 0)) {
+    return(sapply(seq_len(max_degree), function(d) {
+      round(base_num_knots_1/2^(d - 1))
+    }))
+  }
+  else {
+    return(sapply(seq_len(max_degree), function(d) {
+      round(base_num_knots_0/2^(d - 1))
+    }))
+  }
+}
 

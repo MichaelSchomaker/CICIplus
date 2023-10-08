@@ -17,8 +17,8 @@ The main function of the package is currently \code{\link{sgf}}.
 \tabular{ll}{
 Package: \tab CICIplus\cr
 Type: \tab Package\cr
-Version: \tab 0.9.1\cr
-Date: \tab 2023-08-05\cr
+Version: \tab 0.9.3\cr
+Date: \tab 2023-10-08\cr
 License: \tab GPL-2\cr
 Depends: \tab R (>= 4.0), CICI\cr
 Imports: \tab mgcv, SuperLearner, ggplot2, parallel, doParallel, foreach, doRNG, rngtools\cr
