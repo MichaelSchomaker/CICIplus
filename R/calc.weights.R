@@ -41,7 +41,7 @@ Aform.d2 <- rep(NULL,length(Aform.d))
 
 # estimate conditional densities
 gdf <- get(d.method)
-g.preds <- gdf(Aform.n,Aform.d2,X=X,Anodes=Anodes,abar=abar,...)
+g.preds <- gdf(Aform.n,Aform.d2,X=X,Anodes=Anodes,abar=abar, ...)
 g.preds.n <- g.preds[[1]]; g.preds.d <- g.preds[[2]]
 
 # replace denominator if zero

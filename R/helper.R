@@ -31,8 +31,9 @@ binning <- function(form.n,form.d,X,Anodes,abar){
       cutX[,Anodes] <- apply((subset(cutX, select=Anodes)>cuts[j]) & (subset(cutX, select=Anodes) < cuts[j+1]),2,as.numeric)
       fitted.n[[i]] <- mgcv::gam(as.formula(form.n[i]),data=cutX,family="binomial")
       fitted.d[[i]] <- mgcv::gam(as.formula(form.d[i]),data=cutX,family="binomial")
-      g.n[[i]][,j] <- dbinom(1,size=1,predict(fitted.n[[i]], type="response", newdata=X))
-      g.d[[i]][,j] <- dbinom(1,size=1,predict(fitted.d[[i]], type="response", newdata=X))
+      pX <- cutX; pX[,Anodes] <- 1
+      g.n[[i]][,j] <- dbinom(1,size=1,predict(fitted.n[[i]], type="response", newdata=pX))
+      g.d[[i]][,j] <- dbinom(1,size=1,predict(fitted.d[[i]], type="response", newdata=pX))
     }
   }
   #
@@ -52,16 +53,17 @@ parametric <- function(form.n,form.d,X,Anodes,abar){
   fitted.n[[i]] <- mgcv::gam(as.formula(form.n[i]),data=X,family=fams[i])
   fitted.d[[i]] <- mgcv::gam(as.formula(form.d[i]),data=X,family=fams[i])
     for(j in 1:length(abar)){
+      XA <- X; XA[,Anodes] <- abar[j] 
       if(fams[i]=="gaussian"){
-      g.n[[i]][,j] <- dnorm(abar[j],mean=predict(fitted.n[[i]], newdata=X),sd=sqrt(fitted.n[[i]]$sig2))
-      g.d[[i]][,j] <- dnorm(abar[j],mean=predict(fitted.d[[i]], newdata=X),sd=sqrt(fitted.d[[i]]$sig2))
+        g.n[[i]][,j] <- dnorm(abar[j],mean=predict(fitted.n[[i]], newdata=XA),sd=sqrt(fitted.n[[i]]$sig2))
+        g.d[[i]][,j] <- dnorm(abar[j],mean=predict(fitted.d[[i]], newdata=XA),sd=sqrt(fitted.d[[i]]$sig2))
       }else{
         if(fams[i]=="poisson"){
-          g.n[[i]][,j] <- dpois(abar[j],lambda=predict(fitted.n[[i]], type="response", newdata=X))
-          g.d[[i]][,j] <- dpois(abar[j],lambda=predict(fitted.d[[i]], type="response", newdata=X))
+          g.n[[i]][,j] <- dpois(abar[j],lambda=predict(fitted.n[[i]], type="response", newdata=XA))
+          g.d[[i]][,j] <- dpois(abar[j],lambda=predict(fitted.d[[i]], type="response", newdata=XA))
         }else{
-          g.n[[i]][,j] <- dbinom(abar[j],size=1,prob=predict(fitted.n[[i]], type="response", newdata=X))
-          g.d[[i]][,j] <- dbinom(abar[j],size=1,prob=predict(fitted.d[[i]], type="response", newdata=X))
+          g.n[[i]][,j] <- dbinom(abar[j],size=1,prob=predict(fitted.n[[i]], type="response", newdata=XA))
+          g.d[[i]][,j] <- dbinom(abar[j],size=1,prob=predict(fitted.d[[i]], type="response", newdata=XA))
             }
       }
   }}
@@ -135,10 +137,15 @@ hal_density <- function(form.n,form.d,X,Anodes,abar,
         if(hal.verbose==TRUE){message(paste("Number of knots for denominator density:", paste(nknots2, collapse=","), "(", form.d[i],")"))}
         #
   for(j in 1:length(abar)){
-      g.n[[i]][,j] <- haldensify:::predict.haldensify(fitted.n[[i]], new_A = rep(abar[j],nrow(X)),
-                                             new_W = subset(X,select=gsub(" ", "",strsplit(strsplit(form.n[i],"~")[[1]][2],"[+]")[[1]])), trim=FALSE, ...)
-      g.d[[i]][,j] <- haldensify:::predict.haldensify(fitted.d[[i]], new_A = rep(abar[j],nrow(X)),
-                              new_W = subset(X,select=gsub(" ", "",strsplit(strsplit(form.n[i],"~")[[1]][2],"[+]")[[1]])), trim=FALSE, ...)
+      WA.n <- subset(X,select=gsub(" ", "",strsplit(strsplit(form.n[i],"~")[[1]][2],"[+]")[[1]]))
+      if(length(strsplit(form.d[i],"~")[[1]][2])>1){
+      WA.d <- subset(X,select=gsub(" ", "",strsplit(strsplit(form.d[i],"~")[[1]][2],"[+]")[[1]][-1]))}else{
+      WA.d <- matrix(1,nrow(X),ncol=1)  
+      }
+      sel.n <- colnames(WA.n)%in%Anodes; WA.n[,sel.n] <- abar[j]
+      sel.d <- colnames(WA.d)%in%Anodes; WA.d[,sel.d] <- abar[j]
+      g.n[[i]][,j] <- haldensify:::predict.haldensify(fitted.n[[i]], new_A = rep(abar[j],nrow(X)), new_W = WA.n, trim=FALSE, ...)
+      g.d[[i]][,j] <- haldensify:::predict.haldensify(fitted.d[[i]], new_A = rep(abar[j],nrow(X)), new_W = WA.d, trim=FALSE, ...)
   }
   }
   #

@@ -1,6 +1,7 @@
 # Task: simulation 13 for survival with weights
 # pass on options for calc.weights: i.e. parallelize for hal_density and screening options for model.formulas.update
 # calc.support for custom interventions: does not make sense. Not allow or warning or improve?
+# calc.weights: abar = matrix not possible so far; either stop() or make it possible
 
 sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
                 abar =  NULL, survivalY = FALSE,
