@@ -3,14 +3,14 @@
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{Calculate outcome weights to address positivity violations}
 \description{
-The weights are calculated according to formula (12) in Schomaker et al. (2023).
+The weights are calculated according to formula (14) in Schomaker et al. (2023).
 }
 \usage{
 calc.weights(X, Anodes = NULL, Ynodes = NULL, Lnodes = NULL, Cnodes = NULL,
              abar = NULL, times = length(Anodes), c = 0.01, screen = FALSE, 
              survival = FALSE, eps = 1e-10, zero = 0, 
              d.method = c("binning", "parametric", "hal_density"),
-             z.method = c("density", "eps"), w.function = "linear",
+             z.method = c("density", "eps"), w.function = "gal_ga",
              for.sgf = TRUE,
              verbose = TRUE, ...)
 }
@@ -56,10 +56,10 @@ A numeric value specifying which actual number is considered to be "zero" in the
 A string specifying which method should be used to estimate the conditional density. One of \code{"binning", "parametric", "hal_density"}.
 }
   \item{z.method}{
-A string specifying the method which should be used if the denominator is zero: The default is \code{"density"}, which modifies the density according to formula (12) in Schomaker et al. (2023). Alternatively, \code{"eps"} replaces the denominator with a fixed value specified under \code{eps}.
+A string specifying the method which should be used if the denominator is zero: The default is \code{"density"}, which modifies the density according to formula (14) in Schomaker et al. (2023). Alternatively, \code{"eps"} replaces the denominator with a fixed value specified under \code{eps}.
 }
   \item{w.function}{
-A string specifying the weight function which specifies how the conditional densities from numerator and denominator as well as c should be combined. Currently, only \code{"linear"} is provided - which equates to formula (12) of Schomaker et al. (2023).
+A string specifying the weight function which specifies how the conditional densities from numerator and denominator as well as c should be combined. Currently, \code{"gal_ga"} equates to formula (14) of Schomaker et al. (2023); whereas \code{"gal_ga2"} equates to the same weights, but where the cutoff for c to define positivity violations is not based on the conditional treatment density alone, but relative to the density defined in the denominator.
 }
 \item{for.sgf}{
  Logical. If TRUE, weights are organized such that they fit the order required for \code{\link{sgf}}.
@@ -72,7 +72,7 @@ Further arguments to be passed on.
 }
 }
 \details{
-Calculates the outcome weights as described in formula (12) of Schomaker et al. (2023).
+Calculates the outcome weights as described in formula (14) of Schomaker et al. (2023).
 
 If \code{d.method="parametric"}, parametric conditional density estimation with generalized (additive models) is used.  Under \code{d.method="binning"} the continuous intervention is categorized into \code{length(abar)} bins, and then logistic (additive) models are used to approximate the conditional treatment density. The method \code{d.method="hal_density"} estimates the conditional treatment density non-parametrically using highly adaptive LASSO density estimation, as implemented in \pkg{haldensify}. This option is experimental so far, and may take long, especially if the sample size is large. 
 

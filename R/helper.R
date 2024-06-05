@@ -1,4 +1,5 @@
-linear <- function(nom,den,c){(apply(nom > c,2,as.numeric))*1 +  (apply(nom <= c,2,as.numeric))*(nom/den)}
+gal_ga  <- function(nom,den,c){(apply(nom > c,2,as.numeric))*1 +  (apply(nom <= c,2,as.numeric))*(nom/den)}
+gal_ga2 <- function(nom,den,c){(apply((nom/den) > c,2,as.numeric))*1 +  (apply((nom/den) <= c,2,as.numeric))*(nom/den)}
 
 multiResultClass <- function(result1=NULL,result2=NULL)
 {
@@ -96,6 +97,7 @@ hal_density <- function(form.n,form.d,X,Anodes,abar,
   fitted.n <- fitted.d <- rep(list(NULL),length(form.n))
   g.d <- g.n <- rep(list(matrix(NA,nrow=nrow(X),ncol=length(abar),dimnames=list(NULL,paste(abar)))),
                     length(form.n))
+  message("num, ")
   #
   for(i in 1:length(form.n)){
         # numerator
@@ -116,6 +118,7 @@ hal_density <- function(form.n,form.d,X,Anodes,abar,
         )
         if(hal.verbose==TRUE){message(paste("Number of knots for numerator density:", paste(nknots, collapse=","), "(", form.n[i],")"))}
         #  
+        message("denom, ")
         # denominator
         tc <- gsub(" ", "",strsplit(strsplit(form.d[i],"~")[[1]][2],"[+]")[[1]])
         if(tc[1]=="1" & length(tc)==1){W.d<-matrix(1,nrow(X),ncol=1)}else{
@@ -144,7 +147,9 @@ hal_density <- function(form.n,form.d,X,Anodes,abar,
       }
       sel.n <- colnames(WA.n)%in%Anodes; WA.n[,sel.n] <- abar[j]
       sel.d <- colnames(WA.d)%in%Anodes; WA.d[,sel.d] <- abar[j]
+      message("pred.n, ")
       g.n[[i]][,j] <- haldensify:::predict.haldensify(fitted.n[[i]], new_A = rep(abar[j],nrow(X)), new_W = WA.n, trim=FALSE, ...)
+      message("pred.d \n")
       g.d[[i]][,j] <- haldensify:::predict.haldensify(fitted.d[[i]], new_A = rep(abar[j],nrow(X)), new_W = WA.d, trim=FALSE, ...)
   }
   }

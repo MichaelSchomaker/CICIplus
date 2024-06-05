@@ -4,7 +4,7 @@ calc.weights <- function(X,Anodes=NULL,Ynodes=NULL,Lnodes=NULL,Cnodes=NULL,
                          survival = FALSE, eps = 1e-10, zero=0,
                          d.method=c("binning","parametric","hal_density"),
                          z.method=c("density","eps"),
-                         w.function="linear",
+                         w.function="gal_ga",
                          for.sgf=TRUE,
                          verbose=TRUE, ...
                          ){
