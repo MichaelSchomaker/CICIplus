@@ -1,4 +1,4 @@
-summary.Yweights<-function(object,...){
+summary.Yweights<-function(object,verbose=TRUE,...){
 
 x <- object
 time.points <- length(x[[1]])
@@ -26,7 +26,7 @@ names(results[[i]]) <- paste("Time point", 1:time.points)
     results[[i]][[j]]     <- round(results[[i]][[j]], digits=2)
   }
 }
-print(results)
+if(verbose==TRUE){print(results)}
 return(invisible(results))
 }
   

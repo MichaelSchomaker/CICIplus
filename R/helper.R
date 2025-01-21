@@ -97,7 +97,6 @@ hal_density <- function(form.n,form.d,X,Anodes,abar,
   fitted.n <- fitted.d <- rep(list(NULL),length(form.n))
   g.d <- g.n <- rep(list(matrix(NA,nrow=nrow(X),ncol=length(abar),dimnames=list(NULL,paste(abar)))),
                     length(form.n))
-  message("num, ")
   #
   for(i in 1:length(form.n)){
         # numerator
@@ -117,8 +116,6 @@ hal_density <- function(form.n,form.d,X,Anodes,abar,
           num_knots = nknots, ...
         )
         if(hal.verbose==TRUE){message(paste("Number of knots for numerator density:", paste(nknots, collapse=","), "(", form.n[i],")"))}
-        #  
-        message("denom, ")
         # denominator
         tc <- gsub(" ", "",strsplit(strsplit(form.d[i],"~")[[1]][2],"[+]")[[1]])
         if(tc[1]=="1" & length(tc)==1){W.d<-matrix(1,nrow(X),ncol=1)}else{
@@ -220,3 +217,7 @@ num_knots_generator <- function(max_degree, smoothness_orders, base_num_knots_0 
   }
 }
 
+non.na.identical <- function(v1,v2){
+  compare <- v1==v2
+  all(na.omit(compare))
+}

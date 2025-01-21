@@ -17,8 +17,8 @@ The main function of the package is currently \code{\link{sgf}}.
 \tabular{ll}{
 Package: \tab CICIplus\cr
 Type: \tab Package\cr
-Version: \tab 0.9.5\cr
-Date: \tab 2024-06-05\cr
+Version: \tab 0.9.6\cr
+Date: \tab 2025-01-31\cr
 License: \tab GPL-2\cr
 Depends: \tab R (>= 4.0), CICI\cr
 Imports: \tab mgcv, SuperLearner, ggplot2, parallel, doParallel, foreach, doRNG, rngtools\cr
@@ -33,5 +33,5 @@ Maintainer: Michael Schomaker <michael.schomaker@stat.uni-muenchen.de>
 }
 
 \references{
-Schomaker M, McIlleron H, Denti P, Diaz I. (2023) \emph{Causal Inference for Continuous Multiple Time Point Interventions}, ArXiv e-prints: \emph{https://arxiv.org/abs/2305.06645}.
+Schomaker M, McIlleron H, Denti P, Diaz I. (2024) \emph{Causal Inference for Continuous Multiple Time Point Interventions}, ArXiv e-prints: \emph{https://arxiv.org/abs/2305.06645}.
 }

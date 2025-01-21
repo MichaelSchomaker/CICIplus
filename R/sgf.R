@@ -1,7 +1,9 @@
 # Task: simulation 13 for survival with weights
 # pass on options for calc.weights: i.e. parallelize for hal_density and screening options for model.formulas.update
-# calc.support for custom interventions: does not make sense. Not allow or warning or improve?
 # calc.weights: abar = matrix not possible so far; either stop() or make it possible
+# survival: deterministic only when Q=Y, i.e. when Q is not a L-node
+# individual interventions: if two schemes have identical "names", intervention assignment is not clear -> "check function"; Han
+# categorical interventions? 
 
 sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
                 abar =  NULL, survivalY = FALSE,
@@ -14,6 +16,7 @@ sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
   if(is.null(seed)==FALSE){set.seed(seed)}
   if(is.null(prog)==FALSE){write(matrix("started with setup..."),file=paste(prog,"/progress.txt",sep=""))}
   model.families <- CICI:::assign.family(X)
+  catint <- FALSE
   #
   if(is.data.frame(X)==FALSE){stop("'X' (i.e. your data) needs to be a data.frame")}
   if(missing(Anodes)){stop("'Anodes' is missing. Please specify your intervention node(s).")}  
@@ -55,8 +58,11 @@ sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
   n.a <- length(Anodes); n.t <- length(Ynodes); n.l <-length(Lnodes); time.points <- 1:n.t
   if(is.matrix(abar)==TRUE){interventions <- do.call(rbind, replicate(n.t, abar, simplify=FALSE)); i.type <- "custom"}else{
     if(is.vector(abar)){interventions <- do.call(rbind, replicate(n.t, matrix(rep(abar,n.a),ncol=n.a), simplify=FALSE)); i.type<-"standard"}
-  }
+    if(is.list(abar)){interventions <- do.call(rbind,replicate(n.t,do.call(rbind,lapply(lapply(abar,colnames),as.numeric)),simplify=FALSE)) ; i.type="individual"}                          
+    }
   n.int <- dim(interventions)[1]/n.t
+  if(i.type=="custom" & calc.support==TRUE){calc.support<-FALSE; if(verbose==TRUE){cat("Note: no support can be calculated for custom intervention strategies.\n")}}
+  if(i.type=="individual" & calc.support==TRUE){calc.support<-FALSE; if(verbose==TRUE){cat("Note: no support can be calculated for individual intervention strategies.\n")}}
   
   store.results           <- as.data.frame(matrix(NA,nrow=(n.t)*n.int,ncol=1+n.a+1))
   colnames(store.results) <- c("time",paste("a",1:n.a ,sep=""),"psi")
@@ -79,7 +85,7 @@ sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
     }
     if(verbose==TRUE){cat(paste("Note: You initialized parallel computation using",ncores,"threads...initializing cluster now... \n"))}
     cl <- parallel::makeCluster(ncores); doParallel::registerDoParallel(cl)
-    exp.var <- c(unlist(SL.library),SL.export,"multiResultClass")
+    exp.var <- c(unlist(SL.library),SL.export,"multiResultClass","non.na.identical")
   }else{exp.var=NULL; foreach::registerDoSEQ()}
   
   if(B>0){analysis.b<- rep(list(NA),B)}else{analysis.b<-NULL}
@@ -112,8 +118,14 @@ sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
                         # Step 1: intervene
                         gdata <- mydat
                         all.rel.Anodes  <-   which(colnames(mydat)%in%c(Anodes))
-                        gdata[,all.rel.Anodes] <-   (store.results[i,2:(n.a+1)])[is.na(store.results[i,2:(n.a+1)])==F]
-                        
+                        if(i.type!="individual"){replacement <- matrix(rep((store.results[i,2:(n.a+1)])[is.na(store.results[i,2:(n.a+1)])==F], nrow(mydat)), nrow=nrow(mydat), byrow=T)}else{
+                                                 replacement <- abar[[which(sapply(lapply(lapply(abar, colnames), as.numeric),
+                                                                                   non.na.identical, as.vector(unname(unlist(store.results[i,2:(n.a+1)]))) ) ) ]]  
+                                                 replacement <- replacement[,1:length(all.rel.Anodes)]
+                                                 }
+                        if(length(all.rel.Anodes)==1){replacement<-as.vector(replacement)}; 
+                        gdata[,all.rel.Anodes] <-    replacement
+
                         # Step 2: sequential g-formula
                         for(t in length(Q.info):1)try({
                           if(is.null(Yweights)==FALSE){w.t<-Yweights[[t]][,ind]}else{w.t<-rep(1,nrow(X))} 
@@ -169,7 +181,13 @@ sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
                 # Step 1: intervene
                 gdata <- mydat
                 all.rel.Anodes  <-   which(colnames(mydat)%in%c(Anodes))
-                gdata[,all.rel.Anodes] <-   (store.results[i,2:(n.a+1)])[is.na(store.results[i,2:(n.a+1)])==F]
+                if(i.type!="individual"){replacement <- matrix(rep((store.results[i,2:(n.a+1)])[is.na(store.results[i,2:(n.a+1)])==F], nrow(mydat)), nrow=nrow(mydat), byrow=T)}else{
+                  replacement <- abar[[which(sapply(lapply(lapply(abar, colnames), as.numeric), non.na.identical, as.vector(unname(unlist(store.results[i,2:(n.a+1)]))) ) ) ]]  
+                  replacement <- replacement[,1:length(all.rel.Anodes)]
+                }
+                if(length(all.rel.Anodes)==1){replacement<-as.vector(replacement)}; 
+                gdata[,all.rel.Anodes] <-    replacement
+                
                 # Step 2: sequential g-formula
                 for(t in length(Q.info):1)try({
                   if(is.null(Yweights)==FALSE){w.t<-Yweights[[t]][,ind]}else{w.t<-rep(1,nrow(X))} 
@@ -227,7 +245,7 @@ sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
             SL.weights = round(SL.summary, digits=2),
             setup=list(i.type = i.type, n.t=n.t, B=B, fams=model.families, measure="default",
                        Ynodes = Ynodes, Anodes=Anodes, Lnodes=Lnodes, Cnodes=Cnodes, abar=abar,
-                       support=calc.support, survival=survivalY, Qblocks=loop.Q, Qnodes=Qnodes)
+                       support=calc.support, survival=survivalY, Qblocks=loop.Q, Qnodes=Qnodes, catint=catint)
   )
   
   class(res) <- "gformula"
