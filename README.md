@@ -28,4 +28,4 @@ remotes::install_github("MichaelSchomaker/CICIplus")
 
 ## Example
 
-Examples will soon be available at [my homepage](https://michaelschomaker.github.io/project/cici/).
+Examples are available at [my homepage](https://michaelschomaker.github.io/project/cici/).
