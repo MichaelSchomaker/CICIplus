@@ -35,7 +35,7 @@ A character string of column names in \code{X} of  the censoring variable(s).
 Numeric vector or matrix of intervention values. See Details.
 }
   \item{survivalY}{
-Logical. If TRUE, then Y nodes are indicators of an event, and if Y at some time point is 1, then all following should be 1.
+Logical. If TRUE, then Y nodes are indicators of an event.
 }
   \item{SL.library}{
 Either a character vector of prediction algorithms or a list containing character vectors. See details. 
@@ -76,7 +76,7 @@ If \code{abar} is a vector, then each vector component is used as the interventi
 
 The nested iterated outcome models are fitted using super learning. The specified prediction algorithms (possibly coupled with algorithms for prior variable screening)  are passed on to package \pkg{SuperLearner}. See \code{?SuperLearner} for examples of permitted structures. Note: User-written prediction algorithms, corresponding \code{S3} prediction functions and screening algorithms need to be specified under \code{SL.export}, if parallelization is used. 
 
-For survival settings, it is required that i) \code{survivalY=TRUE}, ii) the data are in a format where a Ynode stays 1, after it jumps to 1 and ii) after a Cnode/Ynode is 1, every variable thereafter is set to \code{NA} (except a Ynode which is already 1). See manual for an example. The package intervenes on Cnodes, i.e. calculates counterfactual outcomes under no censoring. 
+For survival settings, it is required that i) \code{survivalY=TRUE} and ii) after a Cnode/Ynode is 1, every variable thereafter is set to \code{NA}. See manual for an example. The package intervenes on Cnodes, i.e. calculates counterfactual outcomes under no censoring. 
 
 If \code{calc.support=TRUE}, conditional and crude support measures (i.e., diagnostics) are calculated as described in Section 3.3.2 of Schomaker et al. (2023). 
 
@@ -90,7 +90,7 @@ Returns an object of of \code{class} `gformula':
   \item{setup}{list of chosen setup parameters}
 }
 \references{
-Schomaker M, McIlleron H, Denti P, Diaz I. (2023) \emph{Causal Inference for Continuous Multiple Time Point Interventions}, ArXiv e-prints: \emph{https://arxiv.org/abs/2305.06645}.
+Schomaker M, McIlleron H, Denti P, Diaz I. (2024) \emph{Causal Inference for Continuous Multiple Time Point Interventions}, ArXiv e-prints: \emph{https://arxiv.org/abs/2305.06645}.
 }
 \author{
 Michael Schomaker

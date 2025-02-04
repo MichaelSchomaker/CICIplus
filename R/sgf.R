@@ -3,7 +3,8 @@
 # calc.weights: abar = matrix not possible so far; either stop() or make it possible
 # survival: deterministic only when Q=Y, i.e. when Q is not a L-node
 # individual interventions: if two schemes have identical "names", intervention assignment is not clear -> "check function"; Han
-# categorical interventions? 
+# categorical interventions? -> or categorical simply numeric and document?
+# check function for correct survival setup?
 
 sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
                 abar =  NULL, survivalY = FALSE,
@@ -132,13 +133,18 @@ sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
                           if(t==length(Q.info)){Y.t<-mydat[,which(colnames(mydat)==Q.info[length(Q.info)])]}else{Y.t <- Q.t}
                           if(t>1){Y.w <- Y.t*w.t}else{Y.w<-Y.t}
                           fdata <- cbind(mydat[,1:((which(colnames(mydat)==loop.Q[[2]][[current.t]][t])))],Y.w)
-                          if(is.null(Cnodes)==FALSE){fdata <- na.omit(fdata)}
+                          selind<-!is.na(fdata$Y.w);fdata <- fdata[selind,]
+                          if(is.null(Cnodes)==FALSE){if(survivalY==TRUE){
+                              incl <- setdiff(names(fdata),colnames(fdata)[colnames(fdata)%in%c(Cnodes,Ynodes)])}else{
+                              incl <- setdiff(names(fdata),colnames(fdata)[colnames(fdata)%in%c(Cnodes)])}
+                              incl2<- incl[incl!="Y.w"];fdata<-fdata[, incl]}else{incl2<-colnames(fdata)[colnames(fdata)!="Y.w"]}
                           if(alert==FALSE){suitable.family<-model.Q.families[Qnodes%in%Q.info[t]]}else{if(all(fdata$Y.w%in%c(0,1))){suitable.family<-"binomial"}else{suitable.family<-"gaussian"}}
                           m.Y   <- try(SuperLearner::SuperLearner(Y=fdata$Y.w, X=fdata[,-grep("Y.w",colnames(fdata))],
                                                                   SL.library=SL.library, family=suitable.family, ...), silent=TRUE) 
                           SL.summary[,colnames(SL.summary)%in%Q.info[t]] <- m.Y$coef
-                          Q.t <- try(predict(m.Y, newdata = gdata)$pred, silent=TRUE)
-                          if(survivalY==TRUE & t>1){Q.t[mydat[,which(colnames(mydat)==Ynodes[t-1])]==1 ]<-1} #check
+                          if(t>1){Q.t <- mydat[,Q.info[t-1]]}else{Q.t<- mydat[,Q.info[t]]} # implies: Q_t=1 if Y_t-1 = 1 
+                          if(is.null(Cnodes)==FALSE & survivalY==FALSE){selind <- !is.na(Q.t)}
+                          Q.t[selind] <- try(predict(m.Y, newdata = gdata[selind,incl2])$pred, silent=TRUE)
                           if(t==1){results<-weighted.mean(Q.t,w=w.t)}
                           #
                           if(model.Q.families[t]=="binomial" & is.null(Yweights)==TRUE){if(any(m.Y$library.predict<0)){
@@ -194,12 +200,17 @@ sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
                   if(t==length(Q.info)){Y.t<-mydat[,which(colnames(mydat)==Q.info[length(Q.info)])]}else{Y.t <- Q.t}
                   if(t>1){Y.w <- Y.t*w.t}else{Y.w<-Y.t}
                   fdata <- cbind(mydat[,1:((which(colnames(mydat)==loop.Q[[2]][[current.t]][t])))],Y.w)
-                  if(is.null(Cnodes)==FALSE){fdata <- na.omit(fdata)}
+                  selind<-!is.na(fdata$Y.w);fdata <- fdata[selind,]
+                  if(is.null(Cnodes)==FALSE){if(survivalY==TRUE){
+                    incl <- setdiff(names(fdata),colnames(fdata)[colnames(fdata)%in%c(Cnodes,Ynodes)])}else{
+                    incl <- setdiff(names(fdata),colnames(fdata)[colnames(fdata)%in%c(Cnodes)])}
+                    incl2<- incl[incl!="Y.w"];fdata<-fdata[, incl]}else{incl2<-colnames(fdata)[colnames(fdata)!="Y.w"]}
                   if(alert==FALSE){suitable.family<-model.Q.families[Qnodes%in%Q.info[t]]}else{if(all(fdata$Y.w%in%c(0,1))){suitable.family<-"binomial"}else{suitable.family<-"gaussian"}}
                   m.Y   <- try(SuperLearner::SuperLearner(Y=fdata$Y.w, X=fdata[,-grep("Y.w",colnames(fdata))],
                                                           SL.library=SL.library, family=suitable.family, ...), silent=TRUE) 
-                  Q.t <- try(predict(m.Y, newdata = gdata)$pred, silent=T)
-                  if(survivalY==TRUE & t>1){Q.t[mydat[,which(colnames(mydat)==Ynodes[t-1])]==1 ]<-1} #check 
+                  if(t>1){Q.t <- mydat[,Q.info[t-1]]}else{Q.t<- mydat[,Q.info[t]]} # implies: Q_t=1 if Y_t-1 = 1 
+                  if(is.null(Cnodes)==FALSE & survivalY==FALSE){selind <- !is.na(Q.t)}
+                  Q.t[selind] <- try(predict(m.Y, newdata = gdata[selind,incl2])$pred, silent=TRUE)
                   if(t==1){results<-weighted.mean(Q.t,w=w.t)}
                 },silent=TRUE)
                 if(class(m.Y)=="try-error"){results<-NA}

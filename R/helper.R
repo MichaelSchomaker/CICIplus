@@ -144,9 +144,7 @@ hal_density <- function(form.n,form.d,X,Anodes,abar,
       }
       sel.n <- colnames(WA.n)%in%Anodes; WA.n[,sel.n] <- abar[j]
       sel.d <- colnames(WA.d)%in%Anodes; WA.d[,sel.d] <- abar[j]
-      message("pred.n, ")
       g.n[[i]][,j] <- haldensify:::predict.haldensify(fitted.n[[i]], new_A = rep(abar[j],nrow(X)), new_W = WA.n, trim=FALSE, ...)
-      message("pred.d \n")
       g.d[[i]][,j] <- haldensify:::predict.haldensify(fitted.d[[i]], new_A = rep(abar[j],nrow(X)), new_W = WA.d, trim=FALSE, ...)
   }
   }
