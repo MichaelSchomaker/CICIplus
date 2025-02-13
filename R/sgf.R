@@ -1,4 +1,3 @@
-# Task: simulation 13 for survival with weights
 # pass on options for calc.weights: i.e. parallelize for hal_density and screening options for model.formulas.update
 # calc.weights: abar = matrix not possible so far; either stop() or make it possible
 # survival: deterministic only when Q=Y, i.e. when Q is not a L-node
@@ -144,7 +143,7 @@ sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
                           SL.summary[,colnames(SL.summary)%in%Q.info[t]] <- m.Y$coef
                           if(t>1){Q.t <- mydat[,Q.info[t-1]]}else{Q.t<- mydat[,Q.info[t]]} # implies: Q_t=1 if Y_t-1 = 1 
                           if(is.null(Cnodes)==FALSE & survivalY==FALSE){selind <- !is.na(Q.t)}
-                          Q.t[selind] <- try(predict(m.Y, newdata = gdata[selind,incl2])$pred, silent=TRUE)
+                          Q.t[selind] <- try(predict(m.Y, newdata = gdata[selind,incl2],onlySL=TRUE)$pred, silent=TRUE)
                           if(t==1){results<-weighted.mean(Q.t,w=w.t)}
                           #
                           if(model.Q.families[t]=="binomial" & is.null(Yweights)==TRUE){if(any(m.Y$library.predict<0)){
@@ -210,7 +209,7 @@ sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
                                                           SL.library=SL.library, family=suitable.family, ...), silent=TRUE) 
                   if(t>1){Q.t <- mydat[,Q.info[t-1]]}else{Q.t<- mydat[,Q.info[t]]} # implies: Q_t=1 if Y_t-1 = 1 
                   if(is.null(Cnodes)==FALSE & survivalY==FALSE){selind <- !is.na(Q.t)}
-                  Q.t[selind] <- try(predict(m.Y, newdata = gdata[selind,incl2])$pred, silent=TRUE)
+                  Q.t[selind] <- try(predict(m.Y, newdata = gdata[selind,incl2],onlySL=TRUE)$pred, silent=TRUE)
                   if(t==1){results<-weighted.mean(Q.t,w=w.t)}
                 },silent=TRUE)
                 if(class(m.Y)=="try-error"){results<-NA}
