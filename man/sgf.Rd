@@ -87,6 +87,7 @@ Returns an object of of \code{class} `gformula':
   \item{results}{matrix of results}
   \item{diagnostics}{list of diagnostics and weights based on the estimated support (if \code{calc.support=TRUE})}
   \item{SL.weights}{matrix of average super learner weights, at each time point}
+  \item{boot.results}{matrix of bootstrap results}
   \item{setup}{list of chosen setup parameters}
 }
 \references{

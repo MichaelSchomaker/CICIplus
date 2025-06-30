@@ -255,10 +255,11 @@ sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
   res= list(results=store.results, 
             diagnostics=diagn, 
             SL.weights = round(SL.summary, digits=2),
+            boot.results=b.results,
             setup=list(i.type = i.type, n.t=n.t, B=B, fams=model.families, measure="default",
                        Ynodes = Ynodes, Anodes=Anodes, Lnodes=Lnodes, Cnodes=Cnodes, abar=abar,
                        support=calc.support, survival=survivalY, Qblocks=loop.Q, Qnodes=Qnodes,
-                       catint=catint, boot.results=b.results)
+                       catint=catint)
   )
   
   class(res) <- "gformula"
