@@ -4,6 +4,7 @@
 # individual interventions: if two schemes have identical "names", intervention assignment is not clear -> "check function"; Han
 # categorical interventions? -> or categorical simply numeric and document?
 # check function for correct survival setup?
+# contrast function given that I store bootstrap results?
 
 sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
                 abar =  NULL, survivalY = FALSE,
@@ -142,9 +143,9 @@ sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
                                                                   SL.library=SL.library, family=suitable.family, ...), silent=TRUE) 
                           SL.summary[,colnames(SL.summary)%in%Q.info[t]] <- m.Y$coef
                           if(t>1){Q.t <- mydat[,Q.info[t-1]]}else{Q.t<- mydat[,Q.info[t]]} # implies: Q_t=1 if Y_t-1 = 1 (incl. next line)
-                          if(!is.null(Cnodes)){if(survivalY & t>1){selind <- !is.na(Q.t) & Q.t==0}else{selind <- !is.na(Q.t)}}
+                          if(!is.null(Cnodes)){if(survivalY & any(is.na(Q.t))){selind <- !is.na(Q.t) & Q.t==0}else{selind <- !is.na(Q.t)}}
                           Q.t[selind] <- try(predict(m.Y, newdata = gdata[selind,incl2],onlySL=TRUE)$pred, silent=TRUE)
-                          if(t==1){results<-weighted.mean(Q.t,w=w.t,na.rm=T)}
+                          if(t==1){results<-weighted.mean(Q.t,w=w.t, na.rm=T)}
                           #
                           if(model.Q.families[t]=="binomial" & is.null(Yweights)==TRUE){if(any(m.Y$library.predict<0)){
                             mes <- paste("Caution: negative predictions in:",paste(colnames(m.Y$library.predict)[apply(apply(m.Y$library.predict,2,function(x) x<0),2,any)],collapse = " ")); if(verbose==TRUE){print(mes)}
@@ -207,8 +208,8 @@ sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
                   if(alert==FALSE){suitable.family<-model.Q.families[Qnodes%in%Q.info[t]]}else{if(all(fdata$Y.w%in%c(0,1))){suitable.family<-"binomial"}else{suitable.family<-"gaussian"}}
                   m.Y   <- try(SuperLearner::SuperLearner(Y=fdata$Y.w, X=fdata[,-grep("Y.w",colnames(fdata))],
                                                           SL.library=SL.library, family=suitable.family, ...), silent=TRUE) 
-                  if(t>1){Q.t <- mydat[,Q.info[t-1]]}else{Q.t<- mydat[,Q.info[t]]} # implies: Q_t=1 if Y_t-1 = 1 (incl. next line)
-                  if(!is.null(Cnodes)){if(survivalY & t>1){selind <- !is.na(Q.t) & Q.t==0}else{selind <- !is.na(Q.t)}}
+                  if(t>1){Q.t <- mydat[,Q.info[t-1]]}else{Q.t<- mydat[,Q.info[t]]} # implies: Q_t=1 if Y_t-1 = 1 
+                  if(!is.null(Cnodes)){if(survivalY & any(is.na(Q.t))){selind <- !is.na(Q.t) & Q.t==0}else{selind <- !is.na(Q.t)}}
                   Q.t[selind] <- try(predict(m.Y, newdata = gdata[selind,incl2],onlySL=TRUE)$pred, silent=TRUE)
                   if(t==1){results<-weighted.mean(Q.t,w=w.t, na.rm=T)}
                 },silent=TRUE)
@@ -235,7 +236,8 @@ sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
     if(verbose==TRUE){cat(paste("Caution:",sum(unlist(boot.failure)),"bootstrap sample(s) were removed due to errors \n"))}   }
     newB <- B-sum(unlist(boot.failure))
     store.results[,c("l95","u95")] <-  t(apply(matrix(unlist(analysis.b),ncol=newB),1,quantile,probs=c(0.025,0.975)))
-  }
+    b.results <- matrix(unlist(analysis.b),ncol=newB)
+  }else{b.results<-NULL}
   
   
   # calculate support if desired
@@ -255,7 +257,8 @@ sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
             SL.weights = round(SL.summary, digits=2),
             setup=list(i.type = i.type, n.t=n.t, B=B, fams=model.families, measure="default",
                        Ynodes = Ynodes, Anodes=Anodes, Lnodes=Lnodes, Cnodes=Cnodes, abar=abar,
-                       support=calc.support, survival=survivalY, Qblocks=loop.Q, Qnodes=Qnodes, catint=catint)
+                       support=calc.support, survival=survivalY, Qblocks=loop.Q, Qnodes=Qnodes,
+                       catint=catint, boot.results=b.results)
   )
   
   class(res) <- "gformula"
