@@ -9,7 +9,7 @@ The weights are calculated according to formula (14) in Schomaker et al. (2023).
 calc.weights(X, Anodes = NULL, Ynodes = NULL, Lnodes = NULL, Cnodes = NULL,
              abar = NULL, times = length(Anodes), c = 0.01, screen = FALSE, 
              survival = FALSE, eps = 1e-10, zero = 0, 
-             d.method = c("binning", "parametric", "hal_density"),
+             d.method = c("binning", "parametric", "hal_density", "hazardbinning"),
              z.method = c("density", "eps"), w.function = "gal_ga",
              for.sgf = TRUE,
              verbose = TRUE, ...)

@@ -1,12 +1,12 @@
 Package: CICIplus
 Type: Package
 Title: Causal Inference with Continuous Interventions - Bonus Material
-Version: 0.9.8.1
-Date: 2025-06-30
+Version: 0.9.9
+Date: 2025-08-02
 Author: Michael Schomaker
 Maintainer: Michael Schomaker <michael.schomaker@stat.uni-muenchen.de>
 Description: Estimation of counterfactual outcomes for multiple values of continuous interventions at different time points, and plotting of causal dose-response curves. Allows integration of outcome-weights to address positivity violations. 
 Depends: R (>= 4.0), CICI 
 Imports: SuperLearner, mgcv, parallel, doParallel, foreach, doRNG, rngtools
-Suggests: haldensify, hal9001
+Suggests: haldensify, hal9001, survival
 License: GPL-2

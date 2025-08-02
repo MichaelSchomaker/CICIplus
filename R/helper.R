@@ -153,6 +153,143 @@ hal_density <- function(form.n,form.d,X,Anodes,abar,
   #
 }
 
+# 4) SL density
+hazardbinning <- function(form.n,form.d,X,Anodes,abar,SL.library=NULL){
+  #
+  if(length(abar)<2){stop("abar needs to have >= 2 values to apply binning")}
+  contin_var <- apply(subset(X, select=Anodes), 2, function(var) length(unique(var)))
+  if(any(contin_var<10)){warning("Some of your intervention variables have less than 10 unique values. Are you sure A is continuous?")}
+  #
+  g.d <- g.n <- rep(list(matrix(NA,nrow=nrow(X),ncol=length(abar),dimnames=list(NULL,paste(abar)))),
+                    length(form.n))
+  #
+  cuts <- (head(abar, -1) + tail(abar, -1)) / 2
+  cuts <- c(cuts[1] - mean(diff(abar)), cuts, cuts[length(cuts)] + mean(diff(abar)))
+  #
+  result_list <- lapply(seq_along(form.n), function(i) {
+    A <- X[, Anodes[i]]
+    fml.n <- as.formula(sub("~\\s*", "~ s(bin_id) + ", form.n[[i]]));vars.n <- all.vars(fml.n[[3]]);y.n <- all.vars(fml.n[[2]])
+    fml.d <- as.formula(sub("~\\s*", "~ s(bin_id) + ", form.d[[i]]));vars.d <- all.vars(fml.d[[3]]);y.d <- all.vars(fml.d[[2]])
+    W.n <- X[, vars.n[-1], drop = FALSE]
+    W.d <- X[, vars.d[-1], drop = FALSE]
+    y_bins0 <- findInterval(A, cuts, rightmost.closed = TRUE)
+    #
+    dat.n <- cbind(data.frame(y = y_bins0, status = 1), W.n)
+    dat.d <- cbind(data.frame(y = y_bins0, status = 1), W.d)
+    #
+    long_data_s.n <- as_ped(survival::Surv(y, status) ~ ., data = dat.n, cut = c(0:length(cuts)))
+    long_data_s.d <- as_ped(survival::Surv(y, status) ~ ., data = dat.d, cut = c(0:length(cuts)))
+    names(long_data_s.n)[names(long_data_s.n) == "ped_status"] <- Anodes[i]
+    names(long_data_s.d)[names(long_data_s.d) == "ped_status"] <- Anodes[i]
+    
+    
+    if (!is.null(SL.library)) {
+      fit_n <- SuperLearner(
+        Y = long_data_s.n[, y.n],
+        X = long_data_s.n[, vars.n, drop = FALSE],
+        id = long_data_s.n$id,
+        family = binomial(),
+        verbose = FALSE,
+        SL.library = SL.library
+      )
+      fit_d <- SuperLearner(
+        Y = long_data_s.d[, y.d],
+        X = long_data_s.d[, vars.d, drop = FALSE],
+        id = long_data_s.d$id,
+        family = binomial(),
+        verbose = FALSE,
+        SL.library = SL.library
+      )
+    } else {
+      fit_n <- mgcv::gam(fml.n, data = long_data_s.n, family = "binomial")
+      fit_d <- mgcv::gam(fml.d, data = long_data_s.d, family = "binomial")
+    }
+    #
+    g_n_hazard <- sapply(seq_along(abar), function(j) {
+      pX <- W.n; pX[,"bin_id"] <- j
+      if (!is.null(SL.library)) as.numeric(predict(fit_n, pX)$pred)
+      else as.numeric(predict(fit_n, type = "response", newdata = pX))
+    })
+    
+    g_d_hazard <- sapply(seq_along(abar), function(j) {
+      pX <- W.d; pX[,"bin_id"] <- j
+      if (!is.null(SL.library)) as.numeric(predict(fit_d, pX)$pred)
+      else as.numeric(predict(fit_d, type = "response", newdata = pX))
+    })
+    
+    g_n_density <- t(apply(g_n_hazard, 1, hazard_to_density))
+    g_d_density <- t(apply(g_d_hazard, 1, hazard_to_density))
+    
+    list(g_n = g_n_density, g_d = g_d_density)
+  })
+  #
+  g.n <- lapply(result_list, `[[`, "g_n")
+  g.d <- lapply(result_list, `[[`, "g_d")
+  #
+  return(list(g.n,g.d))
+  #
+}
+
+as_ped<- function(formula, data, cut) {
+  # Check inputs
+  if (!inherits(formula, "formula")) stop("`formula` must be a formula.")
+  if (!is.data.frame(data)) stop("`data` must be a data.frame.")
+  if (anyNA(cut) || !is.numeric(cut)) stop("`cut` must be a numeric vector without NAs.")
+  #
+  mf <- model.frame(formula, data)
+  surv_obj <- mf[[1]]
+  if (!inherits(surv_obj, "Surv")) stop("Left-hand side of formula must be a Surv object.")
+  #
+  y <- surv_obj[, "time"]
+  status <- surv_obj[, "status"]
+  XX <- mf[, -1, drop = FALSE]
+  #
+  intervals <- data.frame(
+    start = head(c(-1, cut), -1),
+    stop  = cut
+  )
+  #
+  ped_list <- lapply(seq_along(y), function(i) {
+    t_i <- y[i]
+    X_i <- XX[i, , drop = FALSE]
+    active_rows <- which(intervals$start < t_i)
+    if (length(active_rows) == 0) return(NULL)
+    
+    int_i <- intervals[active_rows, , drop = FALSE]
+    int_i$stop <- pmin(int_i$stop, t_i)
+    
+    # Add ped_status: 1 if event occurs in last interval
+    int_i$ped_status <- 0
+    if (status[i] == 1) {
+      int_i$ped_status[nrow(int_i)] <- 1
+    }
+    
+    cbind(
+      id = i,
+      bin_id = int_i$stop,
+      ped_status = int_i$ped_status,
+      X_i[rep(1, nrow(int_i)), , drop = FALSE]
+    )
+  })
+  #
+  ped_data <- do.call(rbind, ped_list)
+  rownames(ped_data) <- NULL
+  #
+  return(ped_data)
+}
+
+
+hazard_to_density <- function(h) {
+  d <- numeric(length(h))
+  d[1] <- h[1]
+  if (length(h) > 1) {
+    for (k in 2:length(h)) {
+      d[k] <- prod(1 - h[1:(k - 1)]) * h[k]
+    }
+  }
+  return(d)
+}
+
 ###
 
 find.Qs <- function(dat, Y, A, L, C){
@@ -219,3 +356,19 @@ non.na.identical <- function(v1,v2){
   compare <- v1==v2
   all(na.omit(compare))
 }
+
+utils::globalVariables("i")
+
+# not needed anymore, left for future
+previous <-function(Qs,Ys,Ls,time){
+  if(Qs[time]%in%Ys){
+    Qlist <- Qs[Qs%in%Ys]
+    pos <- match(Qs[time],Qlist)
+    if(pos>1){prev<-Qlist[pos-1]}else{prev<-99}}else{
+      Qlist <- Qs[Qs%in%Ls]
+      pos <- match(Qs[time],Qlist)
+      if(pos>1){prev<-Qlist[pos-1]}else{prev<-99}
+  }
+  return(prev)
+}
+

@@ -1,0 +1,27 @@
+v.0.9.6
+	- Fixed error for custom interventions
+	- added feasible/individual intervention strategies (abar as appropriate list)
+
+v.0.9.6.1
+	- updated summary.weights function
+
+v.0.9.7
+	- updated sgf to fix errors for survival setting
+
+
+v.0.9.7.1
+	- added onlySL=TRUE for SL prediction
+
+
+v.0.9.8
+	- forgot to document but GitHub commits indicate a fix for survival settings 
+         (I think re-fixing problems introduced in v0.9.7)
+
+v.0.9.8.1
+ 	- return bootstrap results to allow application of contrast function
+
+v.0.9.9
+	- added "hazardbinning" as density estimation option
+        - updated sgf for survival setting under irregular block structures
+        - added cilevel option
+

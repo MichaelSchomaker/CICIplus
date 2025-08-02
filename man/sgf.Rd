@@ -12,7 +12,8 @@ sgf(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
     abar = NULL, survivalY = FALSE, 
     SL.library = "SL.glm", SL.export = NULL,
     Yweights = NULL, calc.support = FALSE, B = 0,
-    ncores = 1, verbose = TRUE, seed = NULL, prog = NULL, ...)
+    ncores = 1, verbose = TRUE, seed = NULL, prog = NULL, 
+    cilevel = 0.95, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -64,6 +65,9 @@ An integer specifying the seed to be used to create reproducable results for par
 }
   \item{prog}{
 A character specifying a path where progress should be saved (typically, when \code{ncores}>1).
+}
+  \item{cilevel}{
+Numeric value between 0 and 1 specifying the confidence level. Defaults to 95\%.
 }
   \item{\dots}{
 Further arguments to be passed on.

@@ -1,23 +1,25 @@
 # pass on options for calc.weights: i.e. parallelize for hal_density and screening options for model.formulas.update
 # calc.weights: abar = matrix not possible so far; either stop() or make it possible
-# survival: deterministic only when Q=Y, i.e. when Q is not a L-node
 # individual interventions: if two schemes have identical "names", intervention assignment is not clear -> "check function"; Han
 # categorical interventions? -> or categorical simply numeric and document?
 # check function for correct survival setup?
-# contrast function given that I store bootstrap results?
-
+# family: forced to gaussian if not 0/1 -> give option to change? -> SL.family = c("auto","original")
+# related: -> replace "Note: prop data"?
+#          -> related do not allow estimates < 0 or > 1 if outcome binary or survival
 sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
                 abar =  NULL, survivalY = FALSE,
                 SL.library = "SL.glm", SL.export = NULL,
                 Yweights = NULL,
                 calc.support = FALSE, B = 0, 
-                ncores=1, verbose=TRUE, seed=NULL, prog=NULL,...){
+                ncores=1, verbose=TRUE, seed=NULL, prog=NULL,
+                cilevel = 0.95, ...){
   
   ### checks and setup ###
   if(is.null(seed)==FALSE){set.seed(seed)}
   if(is.null(prog)==FALSE){write(matrix("started with setup..."),file=paste(prog,"/progress.txt",sep=""))}
   model.families <- CICI:::assign.family(X)
   catint <- FALSE
+  i <- NULL
   #
   if(is.data.frame(X)==FALSE){stop("'X' (i.e. your data) needs to be a data.frame")}
   if(missing(Anodes)){stop("'Anodes' is missing. Please specify your intervention node(s).")}  
@@ -38,6 +40,10 @@ sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
   if(is.numeric(ncores)==FALSE){stop("'ncores' needs to be numeric")}
   if(is.character(prog)==FALSE & is.null(prog)==FALSE){stop("'prog' needs to be a character vector")}
   if(any(abar=="natural")){stop("Natural course scenario not possible for sequential g-formula. Use gformula().")}
+  if (!(is.numeric(cilevel) && length(cilevel) == 1 && cilevel > 0 && cilevel < 1)) {
+    stop("'cilevel' must be a single numeric value between 0 and 1.")
+  }
+  lcl <- (1 - cilevel) / 2; ucl <- 1 - lcl
   #
   if(any(model.families=="binomial")){bin.problem <- !sapply(subset(X,select=(model.families=="binomial")), CICI:::is.binary)
   if(any(bin.problem)){if(verbose==TRUE){cat(paste("Binary variables have been recoded:",paste(names(bin.problem)[bin.problem],collapse=","),"\n"))}
@@ -129,9 +135,11 @@ sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
 
                         # Step 2: sequential g-formula
                         for(t in length(Q.info):1)try({
+                          # a) define (weighted, iterated) outcome
                           if(is.null(Yweights)==FALSE){w.t<-Yweights[[t]][,ind]}else{w.t<-rep(1,nrow(X))} 
                           if(t==length(Q.info)){Y.t<-mydat[,which(colnames(mydat)==Q.info[length(Q.info)])]}else{Y.t <- Q.t}
                           if(t>1){Y.w <- Y.t*w.t}else{Y.w<-Y.t}
+                          # b) define covariates prior to Q.t and exclude prior Y's/C's in truncation/survival settings
                           fdata <- cbind(mydat[,1:((which(colnames(mydat)==loop.Q[[2]][[current.t]][t])))],Y.w)
                           selind<-!is.na(fdata$Y.w);fdata <- fdata[selind,]
                           if(is.null(Cnodes)==FALSE){if(survivalY==TRUE){
@@ -139,14 +147,19 @@ sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
                               incl <- setdiff(names(fdata),colnames(fdata)[colnames(fdata)%in%c(Cnodes)])}
                               incl2<- incl[incl!="Y.w"];fdata<-fdata[, incl]}else{incl2<-colnames(fdata)[colnames(fdata)!="Y.w"]}
                           if(alert==FALSE){suitable.family<-model.Q.families[Qnodes%in%Q.info[t]]}else{if(all(fdata$Y.w%in%c(0,1))){suitable.family<-"binomial"}else{suitable.family<-"gaussian"}}
+                          # c) Fit SuperLearner
                           m.Y   <- try(SuperLearner::SuperLearner(Y=fdata$Y.w, X=fdata[,-grep("Y.w",colnames(fdata))],
                                                                   SL.library=SL.library, family=suitable.family, ...), silent=TRUE) 
                           SL.summary[,colnames(SL.summary)%in%Q.info[t]] <- m.Y$coef
-                          if(t>1){Q.t <- mydat[,Q.info[t-1]]}else{Q.t<- mydat[,Q.info[t]]} # implies: Q_t=1 if Y_t-1 = 1 (incl. next line)
-                          if(!is.null(Cnodes)){if(survivalY & any(is.na(Q.t))){selind <- !is.na(Q.t) & Q.t==0}else{selind <- !is.na(Q.t)}}
+                          # d) predict with deterministic rules for survival settings (i.e., deterministic Q)
+                          Q.t <- rep(NA, length(Y.w)); if(survivalY & t>1){if(Q.info[t-1]%in%Ynodes){Q.t[mydat[,Q.info[t-1]]==1]<-1}}
+                          # e) predict under intervention (for those units where no deterministic Q)
+                          if(!is.null(Cnodes) & t>1){selind <- !is.na(mydat[,Q.info[t-1]])} # uncensored at t-1
+                          if(survivalY & t>1){selind <- selind & mydat[,Q.info[t-1]]!=1}    # ...and no det. rule applied yet
                           Q.t[selind] <- try(predict(m.Y, newdata = gdata[selind,incl2],onlySL=TRUE)$pred, silent=TRUE)
+                          # f) final estimate
                           if(t==1){results<-weighted.mean(Q.t,w=w.t, na.rm=T)}
-                          #
+                          # negative predictions for probabilities and progress
                           if(model.Q.families[t]=="binomial" & is.null(Yweights)==TRUE){if(any(m.Y$library.predict<0)){
                             mes <- paste("Caution: negative predictions in:",paste(colnames(m.Y$library.predict)[apply(apply(m.Y$library.predict,2,function(x) x<0),2,any)],collapse = " ")); if(verbose==TRUE){print(mes)}
                             if(is.null(prog)==FALSE){try(write(matrix(mes),file=paste(prog,"/progress.txt",sep=""),append=T))}  }}
@@ -208,8 +221,8 @@ sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
                   if(alert==FALSE){suitable.family<-model.Q.families[Qnodes%in%Q.info[t]]}else{if(all(fdata$Y.w%in%c(0,1))){suitable.family<-"binomial"}else{suitable.family<-"gaussian"}}
                   m.Y   <- try(SuperLearner::SuperLearner(Y=fdata$Y.w, X=fdata[,-grep("Y.w",colnames(fdata))],
                                                           SL.library=SL.library, family=suitable.family, ...), silent=TRUE) 
-                  if(t>1){Q.t <- mydat[,Q.info[t-1]]}else{Q.t<- mydat[,Q.info[t]]} # implies: Q_t=1 if Y_t-1 = 1 
-                  if(!is.null(Cnodes)){if(survivalY & any(is.na(Q.t))){selind <- !is.na(Q.t) & Q.t==0}else{selind <- !is.na(Q.t)}}
+                  Q.t <- rep(NA, length(Y.w)); if(survivalY & t>1){if(Q.info[t-1]%in%Ynodes){Q.t[mydat[,Q.info[t-1]]==1]<-1}}
+                  if(!is.null(Cnodes) & t>1){selind <- !is.na(mydat[,Q.info[t-1]])};if(survivalY & t>1){selind <- selind & mydat[,Q.info[t-1]]!=1}    
                   Q.t[selind] <- try(predict(m.Y, newdata = gdata[selind,incl2],onlySL=TRUE)$pred, silent=TRUE)
                   if(t==1){results<-weighted.mean(Q.t,w=w.t, na.rm=T)}
                 },silent=TRUE)
@@ -235,7 +248,7 @@ sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
     if(sum(unlist(boot.failure))>0){boots <- boots[-c(1:B)[unlist(boot.failure)]];analysis.b <- analysis.b[-c(1:B)[unlist(boot.failure)]]
     if(verbose==TRUE){cat(paste("Caution:",sum(unlist(boot.failure)),"bootstrap sample(s) were removed due to errors \n"))}   }
     newB <- B-sum(unlist(boot.failure))
-    store.results[,c("l95","u95")] <-  t(apply(matrix(unlist(analysis.b),ncol=newB),1,quantile,probs=c(0.025,0.975)))
+    store.results[,c("lcl","ucl")] <-  t(apply(matrix(unlist(analysis.b),ncol=newB),1,quantile,probs=c(lcl,ucl)))
     b.results <- matrix(unlist(analysis.b),ncol=newB)
   }else{b.results<-NULL}
   
