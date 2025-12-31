@@ -19,5 +19,7 @@ importFrom(SuperLearner, predict.SuperLearner)
 importFrom(SuperLearner, SL.glm)
 importFrom(SuperLearner, predict.SL.glm)
 importFrom("stats", "as.formula", "dbinom", "dnorm", "dpois",
-             "na.omit", "predict", "quantile", "weighted.mean")
+             "na.omit", "predict", "quantile", "weighted.mean",
+			 "binomial", "model.frame")
+importFrom("utils", "head", "tail")
 

@@ -6,6 +6,7 @@
 # family: forced to gaussian if not 0/1 -> give option to change? -> SL.family = c("auto","original")
 # related: -> replace "Note: prop data"?
 #          -> related do not allow estimates < 0 or > 1 if outcome binary or survival
+# plot function for calc.weights
 sgf <- function(X, Anodes, Ynodes, Lnodes = NULL, Cnodes = NULL,
                 abar =  NULL, survivalY = FALSE,
                 SL.library = "SL.glm", SL.export = NULL,

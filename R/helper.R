@@ -144,8 +144,10 @@ hal_density <- function(form.n,form.d,X,Anodes,abar,
       }
       sel.n <- colnames(WA.n)%in%Anodes; WA.n[,sel.n] <- abar[j]
       sel.d <- colnames(WA.d)%in%Anodes; WA.d[,sel.d] <- abar[j]
-      g.n[[i]][,j] <- haldensify:::predict.haldensify(fitted.n[[i]], new_A = rep(abar[j],nrow(X)), new_W = WA.n, trim=FALSE, ...)
-      g.d[[i]][,j] <- haldensify:::predict.haldensify(fitted.d[[i]], new_A = rep(abar[j],nrow(X)), new_W = WA.d, trim=FALSE, ...)
+      if (requireNamespace("haldensify", quietly = TRUE)) {
+      g.n[[i]][,j] <- haldensify::predict.haldensify(fitted.n[[i]], new_A = rep(abar[j],nrow(X)), new_W = WA.n, trim=FALSE, ...)
+      g.d[[i]][,j] <- haldensify::predict.haldensify(fitted.d[[i]], new_A = rep(abar[j],nrow(X)), new_W = WA.d, trim=FALSE, ...)
+      }else{stop("Package 'haldensify' is required for this function.")}
   }
   }
   #
@@ -206,13 +208,13 @@ hazardbinning <- function(form.n,form.d,X,Anodes,abar,SL.library=NULL){
     }
     #
     g_n_hazard <- sapply(seq_along(abar), function(j) {
-      pX <- W.n; pX[,"bin_id"] <- j
+      pX <- cbind(bin_id = j, W.n)
       if (!is.null(SL.library)) as.numeric(predict(fit_n, pX)$pred)
       else as.numeric(predict(fit_n, type = "response", newdata = pX))
     })
     
     g_d_hazard <- sapply(seq_along(abar), function(j) {
-      pX <- W.d; pX[,"bin_id"] <- j
+      pX <- cbind(bin_id = j, W.d)
       if (!is.null(SL.library)) as.numeric(predict(fit_d, pX)$pred)
       else as.numeric(predict(fit_d, type = "response", newdata = pX))
     })
