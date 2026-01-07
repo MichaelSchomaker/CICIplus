@@ -8,8 +8,11 @@
 **Author:** [Michael Schomaker](https://michaelschomaker.github.io/)
 
 ------------------------------------------------------------------------
+#
+
 **Note: CICIplus has now been fully integrated into CICI (as of v.0.9.8). Thus, this site and 
 and extension package is not needed anymore. It stays here only to guarantee compatibility with old scripts.**
+
 ------------------------------------------------------------------------
 
 ## What’s `CICIplus`?
